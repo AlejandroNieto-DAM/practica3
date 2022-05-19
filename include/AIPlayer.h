@@ -4,6 +4,7 @@
 # include "Attributes.h"
 # include "Player.h"
 
+
 class AIPlayer: public Player{
     protected:
         //Id identificativo del jugador
@@ -57,7 +58,10 @@ class AIPlayer: public Player{
         void thinkAleatorioMasInteligente(color & c_piece,  int & id_piece, int & dice) const;
         void thinkFichaMasAdelantada(color & c_piece,  int & id_piece, int & dice) const;
         void thinkMejorOpcion(color & c_piece,  int & id_piece, int & dice) const;
-        
+
+        void Poda_AlfaBeta(Parchis actual, int jugador, color & c_piece,  int & id_piece, int & dice) const;
+        int minimax(Parchis actual, int jugador, int maximizing, int profundidad, color & c_piece,  int & id_piece, int & dice, int alpha, int beta) const ;
+
         /**
          * @brief Método que determina si el player es inteligente (decide el mejor movimiento)
          * o no. True para AIPlayer.
