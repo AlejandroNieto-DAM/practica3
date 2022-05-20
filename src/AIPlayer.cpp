@@ -40,7 +40,8 @@ void AIPlayer::think(color &c_piece, int &id_piece, int &dice) const
         thinkMejorOpcion(c_piece, id_piece, dice);
         break;
     case 4:
-        Poda_AlfaBeta(*actual, jugador, c_piece, id_piece, dice);
+        Poda_AlfaBeta(jugador, c_piece, id_piece, dice);
+        break;
     }
 
     /*
@@ -71,39 +72,37 @@ void AIPlayer::think(color &c_piece, int &id_piece, int &dice) const
     */
 }
 
-void AIPlayer::Poda_AlfaBeta(Parchis actual, int jugador, color &c_piece, int &id_piece, int &dice) const
+void AIPlayer::Poda_AlfaBeta(int jugador, color &c_piece, int &id_piece, int &dice) const
 {
-    vector<int> current_dices;
-    vector<int> current_pieces;
+   
+    cout << "Funcion mixmax " << actual << endl;
+    int last_id_piece = -1;
+    int last_dice = -1;
+    color last_c_piece = none;
 
-    c_piece = actual.getCurrentColor();
+    Parchis siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
 
-    current_dices = actual.getAvailableDices(c_piece);
+    cout << "Funcion mixmax" << endl;
 
-    int bestScore = -INFINITY;
-    int id_piece_candidate = -1;
-    int dice_candidate = -1;
 
-    for (int i = 0; i < current_dices.size(); i++)
-    {
+   int id_piece_candidate = -1;
+   color c_piece_candidate = none;
+   int dice_candidate = -1;
+   int bestScore = -1000000;
 
-        // Se obtiene el vector de fichas que se pueden mover para el dado elegido
-        current_pieces = actual.getAvailablePieces(c_piece, current_dices[i]);
+    while(!(siguiente_hijo == (*actual))){
 
-        for (int j = 0; j < current_pieces.size(); j++)
-        {
-            c_piece = actual.getCurrentColor();
-            actual.movePiece(c_piece, current_pieces[j], current_dices[i]);
-
-            int score = minimax(actual, jugador, 1, 0, c_piece, id_piece, dice, -10000, +10000);
-            if (bestScore < score)
-            {
-                bestScore = score;
-                id_piece_candidate = current_pieces[j];
-                dice_candidate = current_dices[i];
-            }
+        int score = minimax(siguiente_hijo, jugador, 1, 0, c_piece, id_piece, dice, -10000, 10000);
+        if(score > bestScore){
+            bestScore = score;
+            c_piece_candidate = last_c_piece;
+            id_piece_candidate = last_id_piece;
+            dice_candidate = last_dice;
         }
+
+        siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
     }
+
 
     if (id_piece_candidate == -1)
     {
@@ -113,88 +112,66 @@ void AIPlayer::Poda_AlfaBeta(Parchis actual, int jugador, color &c_piece, int &i
     {
         id_piece = id_piece_candidate;
         dice = dice_candidate;
+        c_piece = c_piece_candidate;
     }
 }
 
 int AIPlayer::minimax(Parchis actual, int jugador, int maximizing, int profundidad, color &c_piece, int &id_piece, int &dice, int alpha, int beta) const
 {
 
-    if (profundidad == PROFUNDIDAD_ALFABETA)
+    cout << "Minimax dentro" << endl;
+
+    int last_id_piece = -1;
+    int last_dice = -1;
+    color last_c_piece = none;
+
+    Parchis siguiente_hijo = actual.generateNextMove(last_c_piece, last_id_piece, last_dice);
+    
+
+    if (profundidad == (PROFUNDIDAD_ALFABETA -1))
     {
         // Aqui implementaremos la heuristica
-        return ValoracionTest(actual, maximizing);
-    }
+        double value = ValoracionTest(actual, maximizing);
+        cout << "Profundidad alcanzada " << alpha << " " << beta << " " << value << endl;
+        return value;
 
-    if (maximizing)
-    {
+    } else {
 
-        vector<int> current_dices;
-        vector<int> current_pieces;
+        if(maximizing == 1){
 
-        c_piece = actual.getCurrentColor();
+            while(!(siguiente_hijo == actual)){
 
-        current_dices = actual.getAvailableDices(c_piece);
+                alpha = max(alpha, minimax(siguiente_hijo, jugador, 0, profundidad + 1, c_piece, id_piece, dice, alpha, beta));
 
-        vector<int> current_dices_que_pueden_mover_ficha;
-        for (int i = 0; i < current_dices.size(); i++)
-        {
-
-            // Se obtiene el vector de fichas que se pueden mover para el dado elegido
-            current_pieces = actual.getAvailablePieces(c_piece, current_dices[i]);
-
-            for (int j = 0; j < current_pieces.size(); j++)
-            {
-
-                c_piece = actual.getCurrentColor();
-                actual.movePiece(c_piece, current_pieces[j], current_dices[i]);
-                actual.de
-                int maybeAlpha = minimax(actual, jugador, 0, profundidad + 1, c_piece, id_piece, dice, alpha, beta);
-                alpha = max(maybeAlpha, alpha);
-
-                if (alpha >= beta)
+                if (beta <= alpha)
                 {
                     break;
                 }
+                
+                siguiente_hijo = actual.generateNextMove(last_c_piece, last_id_piece, last_dice);
             }
-        }
 
-        return alpha;
-    }
-    else
-    {
+            return alpha;
 
-        vector<int> current_dices;
-        vector<int> current_pieces;
+        } else {
+            
+            while(!(siguiente_hijo == actual)){
 
-        c_piece = actual.getCurrentColor();
-
-        current_dices = actual.getAvailableDices(c_piece);
-
-        vector<int> current_dices_que_pueden_mover_ficha;
-        for (int i = 0; i < current_dices.size(); i++)
-        {
-
-            // Se obtiene el vector de fichas que se pueden mover para el dado elegido
-            current_pieces = actual.getAvailablePieces(c_piece, current_dices[i]);
-
-            for (int j = 0; j < current_pieces.size(); j++)
-            {
-
-                c_piece = actual.getCurrentColor();
-                actual.movePiece(c_piece, current_pieces[j], current_dices[i]);
-
-                int maybeBeta = minimax(actual, jugador, 1, profundidad + 1, c_piece, id_piece, dice, alpha, beta);
-                beta = min(maybeBeta, beta);
-
-                if (alpha >= beta)
+                beta = min(beta, minimax(siguiente_hijo, jugador, 1, profundidad + 1, c_piece, id_piece, dice, alpha, beta));
+            
+                if (beta <= alpha)
                 {
                     break;
                 }
+                
+                siguiente_hijo = actual.generateNextMove(last_c_piece, last_id_piece, last_dice);
             }
+
+            return beta;
         }
 
-        return beta;
     }
+
 }
 
 void AIPlayer::thinkAleatorio(color &c_piece, int &id_piece, int &dice) const
@@ -320,6 +297,32 @@ void AIPlayer::thinkFichaMasAdelantada(color &c_piece, int &id_piece, int &dice)
 
 void AIPlayer::thinkMejorOpcion(color &c_piece, int &id_piece, int &dice) const
 {
+    int last_id_piece = -1;
+    int last_dice = -1;
+    color last_c_piece = none;
+
+    Parchis siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
+
+    bool me_quedo_con_esta_accion = false;
+
+    while(!(siguiente_hijo == *actual) and !me_quedo_con_esta_accion){
+        if(siguiente_hijo.isEatingMove() or siguiente_hijo.isGoalMove() or
+        (siguiente_hijo.gameOver() and siguiente_hijo.getWinner() == this->jugador)){
+            me_quedo_con_esta_accion = true;
+        } else {
+            siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
+        }
+    }
+
+    if(me_quedo_con_esta_accion){
+        c_piece = last_c_piece;
+        id_piece = last_id_piece;
+        dice = last_dice;
+    } else {
+        thinkFichaMasAdelantada(c_piece, id_piece, dice);
+    }
+
+
 }
 
 double AIPlayer::ValoracionTest(const Parchis &estado, int jugador)
