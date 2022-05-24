@@ -60,9 +60,13 @@ class AIPlayer: public Player{
         void thinkMejorOpcion(color & c_piece,  int & id_piece, int & dice) const;
 
         void Poda_AlfaBeta(int jugador, color & c_piece,  int & id_piece, int & dice) const ;
-        int minimax(Parchis actual, int jugador, int maximizing, int profundidad, color & c_piece,  int & id_piece, int & dice, int alpha, int beta) const ;
+        double minimax(Parchis * actual, int jugador, int maximizing, int profundidad, color & c_piece,  int & id_piece, int & dice, double &alpha, double &beta) const ;
+
+        double Heuristica(const Parchis &estado, int jugador);
+
 
         /**
+         * 
          * @brief Método que determina si el player es inteligente (decide el mejor movimiento)
          * o no. True para AIPlayer.
          * 

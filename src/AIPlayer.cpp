@@ -1,5 +1,6 @@
 #include "AIPlayer.h"
 #include "Parchis.h"
+#include "algorithm"
 
 const double masinf = 9999999999.0, menosinf = -9999999999.0;
 const double gana = masinf - 1, pierde = menosinf + 1;
@@ -75,24 +76,24 @@ void AIPlayer::think(color &c_piece, int &id_piece, int &dice) const
 void AIPlayer::Poda_AlfaBeta(int jugador, color &c_piece, int &id_piece, int &dice) const
 {
    
-    cout << "Funcion mixmax " << actual << endl;
     int last_id_piece = -1;
     int last_dice = -1;
     color last_c_piece = none;
 
+    int id_piece_candidate = -1;
+    color c_piece_candidate = none;
+    int dice_candidate = -1;
+
+    double bestScore = -9999999999.0;
+
+    double alpha = -9999999999.0;
+    double beta = 9999999999.0;
+
     Parchis siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
-
-    cout << "Funcion mixmax" << endl;
-
-
-   int id_piece_candidate = -1;
-   color c_piece_candidate = none;
-   int dice_candidate = -1;
-   int bestScore = -1000000;
-
+   
     while(!(siguiente_hijo == (*actual))){
 
-        int score = minimax(siguiente_hijo, jugador, 1, 0, c_piece, id_piece, dice, -10000, 10000);
+        int score = minimax(&siguiente_hijo, jugador, 1, PROFUNDIDAD_ALFABETA - 1, c_piece, id_piece, dice, alpha, beta);
         if(score > bestScore){
             bestScore = score;
             c_piece_candidate = last_c_piece;
@@ -102,7 +103,6 @@ void AIPlayer::Poda_AlfaBeta(int jugador, color &c_piece, int &id_piece, int &di
 
         siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
     }
-
 
     if (id_piece_candidate == -1)
     {
@@ -116,55 +116,55 @@ void AIPlayer::Poda_AlfaBeta(int jugador, color &c_piece, int &id_piece, int &di
     }
 }
 
-int AIPlayer::minimax(Parchis actual, int jugador, int maximizing, int profundidad, color &c_piece, int &id_piece, int &dice, int alpha, int beta) const
+double AIPlayer::minimax(Parchis * actual, int jugador, int maximizing, int profundidad, color &c_piece, int &id_piece, int &dice, double & alpha, double & beta) const
 {
-
-    cout << "Minimax dentro" << endl;
 
     int last_id_piece = -1;
     int last_dice = -1;
     color last_c_piece = none;
 
-    Parchis siguiente_hijo = actual.generateNextMove(last_c_piece, last_id_piece, last_dice);
+    Parchis siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
     
-
-    if (profundidad == (PROFUNDIDAD_ALFABETA -1))
+    if (profundidad == 0 || actual->getWinner() == jugador)
     {
         // Aqui implementaremos la heuristica
-        double value = ValoracionTest(actual, maximizing);
-        cout << "Profundidad alcanzada " << alpha << " " << beta << " " << value << endl;
-        return value;
+        return ValoracionTest(*actual, maximizing);
 
     } else {
 
         if(maximizing == 1){
 
-            while(!(siguiente_hijo == actual)){
+            while(!(siguiente_hijo == *actual)){
 
-                alpha = max(alpha, minimax(siguiente_hijo, jugador, 0, profundidad + 1, c_piece, id_piece, dice, alpha, beta));
+                double valor = max(alpha, minimax(&siguiente_hijo, jugador, 0, profundidad - 1, c_piece, id_piece, dice, alpha, beta));
 
-                if (beta <= alpha)
+                if (beta <= valor)
                 {
                     break;
                 }
+
+                alpha = max(alpha, valor);
                 
-                siguiente_hijo = actual.generateNextMove(last_c_piece, last_id_piece, last_dice);
+                siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
             }
 
             return alpha;
 
         } else {
             
-            while(!(siguiente_hijo == actual)){
+            while(!(siguiente_hijo == *actual)){
+                
 
-                beta = min(beta, minimax(siguiente_hijo, jugador, 1, profundidad + 1, c_piece, id_piece, dice, alpha, beta));
-            
-                if (beta <= alpha)
+                double valor = min(beta, minimax(&siguiente_hijo, jugador, 1, profundidad - 1, c_piece, id_piece, dice, alpha, beta));
+
+                if (valor <= alpha)
                 {
                     break;
                 }
+
+                beta = min(beta, valor);
                 
-                siguiente_hijo = actual.generateNextMove(last_c_piece, last_id_piece, last_dice);
+                siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
             }
 
             return beta;
@@ -322,6 +322,50 @@ void AIPlayer::thinkMejorOpcion(color &c_piece, int &id_piece, int &dice) const
         thinkFichaMasAdelantada(c_piece, id_piece, dice);
     }
 
+
+}
+
+double AIPlayer::Heuristica(const Parchis &estado, int jugador){
+    int ganador = estado.getWinner();
+    int oponente = (jugador + 1) % 2;
+
+    // Si hay un ganador, devuelvo más/menos infinito, según si he ganado yo o el oponente.
+    if (ganador == jugador)
+    {
+        return gana;
+    }
+    else if (ganador == oponente)
+    {
+        return pierde;
+    } else {
+        // Colores que juega mi jugador y colores del oponente
+        vector<color> my_colors = estado.getPlayerColors(jugador);
+        vector<color> op_colors = estado.getPlayerColors(oponente);
+
+        // Recorro todas las fichas de mi jugador
+        int puntuacion_jugador = 0;
+
+        for (int i = 0; i < my_colors.size(); i++)
+        {
+            color c = my_colors[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++)
+            {
+                // Valoro positivamente que la ficha esté en casilla segura o meta.
+                if (estado.isSafePiece(c, j))
+                {
+                    puntuacion_jugador++;
+                }
+                else if (estado.getBoard().getPiece(c, j).type == home)
+                {
+                    puntuacion_jugador += 5;
+                }
+            }
+        }
+
+        return puntuacion_jugador;
+
+    }
 
 }
 
