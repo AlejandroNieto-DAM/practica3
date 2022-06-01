@@ -1,6 +1,9 @@
 #include "AIPlayer.h"
 #include "Parchis.h"
 #include "algorithm"
+#include <thread>
+#include <chrono>
+
 
 const double masinf = 9999999999.0, menosinf = -9999999999.0;
 const double gana = masinf - 1, pierde = menosinf + 1;
@@ -45,6 +48,7 @@ void AIPlayer::think(color &c_piece, int &id_piece, int &dice) const
         break;
     }
 
+
     /*
     // El siguiente código se proporciona como sugerencia para iniciar la implementación del agente.
 
@@ -73,6 +77,137 @@ void AIPlayer::think(color &c_piece, int &id_piece, int &dice) const
     */
 }
 
+bool thereIsOpponentPiece(Parchis estado, int jugador, int casilla){
+    vector<color> my_colors = estado.getPlayerColors(jugador);
+    int oponente = (jugador + 1) % 2;
+    vector<color> op_colors = estado.getPlayerColors(oponente);
+
+    int i = 0;
+    bool exist = false;
+
+    for (int i = 0; i < op_colors.size() and exist == false; i++)
+    {
+        color c = op_colors[i];
+        // Recorro las fichas de ese color.
+        for (int j = 0; j < num_pieces; j++)
+        {
+            // Valoro positivamente que la ficha esté en casilla segura o meta.
+            if (estado.getBoard().getPiece(c, j).num == casilla)
+            {
+                i += 1;
+            }
+
+        }
+
+        if(i != 2){
+            exist = true;
+        }
+
+    }
+
+    return exist;
+
+}
+
+double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
+    int ganador = estado.getWinner();
+    int oponente = (jugador + 1) % 2;
+
+      
+    // Recorro todas las fichas de mi jugador
+    int puntuacion_jugador = 0;
+
+    // Si hay un ganador, devuelvo más/menos infinito, según si he ganado yo o el oponente.
+    if (ganador == jugador)
+    {
+        return gana;
+    }
+    else if (ganador == oponente)
+    {
+        return pierde;
+    } 
+    else 
+    {
+
+        // Colores que juega mi jugador y colores del oponente
+        vector<color> my_colors = estado.getPlayerColors(jugador);
+        vector<color> op_colors = estado.getPlayerColors(oponente);
+
+        vector<int> avaliableDices = estado.getAvailableDices(my_colors[0]);
+
+      
+
+        
+
+        // Recorro colores de mi jugador.
+        int piezasEnCasa = 0;
+        for (int i = 0; i < my_colors.size(); i++)
+        {
+            color c = my_colors[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++)
+            {
+                // Valoro positivamente que la ficha esté en casilla segura o meta.
+                if (estado.isSafePiece(c, j))
+                {
+                    puntuacion_jugador++;
+                }
+                else if (estado.getBoard().getPiece(c, j).type == home)
+                {
+                    puntuacion_jugador += 5;
+                    piezasEnCasa += 1;
+                } 
+            }
+
+            if(estado.isEatingMove()){
+                puntuacion_jugador += 5;
+                if(piezasEnCasa != 3){
+                    puntuacion_jugador += 15;
+                }
+            }
+
+            //Estamos premiando que vayamos a llegar a la meta y como nos da 20 posiciones mas
+            //debemos tener en cuenta que tengamos otra ficha del mismo color al menos fuera
+            //por eso !=3 ya que si una va a llegar la meta solo puede haber como mucho 3 en casa
+            for (int j = 0; j < num_pieces; j++)
+            {
+                for(int k = 0; k < avaliableDices.size(); k++){
+                    if(estado.distanceToGoal(c, j) == avaliableDices[k] and piezasEnCasa != 3){
+                        puntuacion_jugador += 20;
+                    }
+                }
+            }
+
+            //Aqui va un else if mirando a ver si sumando el dado a la casilla actual de la pieza puedo llegar a casa o comerme a otra
+            //pero no se como hacer eso tengo que obtener el box del tablero y ver si hay alguna pieza ahi
+
+            for (int j = 0; j < num_pieces; j++)
+            {
+                for(int k = 0; k < avaliableDices.size(); k++){
+                    if(thereIsOpponentPiece(estado, jugador, (estado.getBoard().getPiece(c, j).num + k)) and piezasEnCasa != 3){
+                        puntuacion_jugador += 10;
+                    }
+                }
+            }
+        }
+
+        /* Vamos a ver donde tenemos las casillas y si las tenemos en una safe place vamos a sumarle puntos */
+        /* Tambien vamos a ver los dados que nos quedan y si alguno es bueno para llegar a meta sumamos puntos
+        aun asi debemos tener en cuenta que si estamos en casa y no tenemos mas piezas sacadas seria tonteria */
+        /* Tenemos que ver si nos quedan dados con los que podamos comernos a una ficha y antes de hacerlo tener una ficha 
+        sacada */
+        /* Hacer que el amarillo se coma al rojo (Un mismo equipo que use su otro color para boostear) */
+        /* Mirar las fichas enemigas que esten a menos de 7 */
+        /* Mirar las fichas enemigas que esten detras mia a menos de 7*/
+        /* Mirar si a menos de 7 hacia delante hay una barrera*/
+        /* Si la ficha esta a 13 de la meta o 9 esta muy bien pero a 9  mejor (ya esta 100% asegurada) */
+
+    }
+
+    return puntuacion_jugador;
+
+} 
+
 void AIPlayer::Poda_AlfaBeta(int jugador, color &c_piece, int &id_piece, int &dice) const
 {
    
@@ -93,7 +228,7 @@ void AIPlayer::Poda_AlfaBeta(int jugador, color &c_piece, int &id_piece, int &di
    
     while(!(siguiente_hijo == (*actual))){
 
-        int score = minimax(&siguiente_hijo, jugador, 1, PROFUNDIDAD_ALFABETA - 1, c_piece, id_piece, dice, alpha, beta);
+        int score = minimax(&siguiente_hijo, jugador, 1, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta);
         if(score > bestScore){
             bestScore = score;
             c_piece_candidate = last_c_piece;
@@ -103,6 +238,8 @@ void AIPlayer::Poda_AlfaBeta(int jugador, color &c_piece, int &id_piece, int &di
 
         siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
     }
+
+    cout << "Poda alfabeta " << id_piece_candidate << endl;
 
     if (id_piece_candidate == -1)
     {
@@ -128,7 +265,7 @@ double AIPlayer::minimax(Parchis * actual, int jugador, int maximizing, int prof
     if (profundidad == 0 || actual->getWinner() == jugador)
     {
         // Aqui implementaremos la heuristica
-        return ValoracionTest(*actual, maximizing);
+        return Heuristica(*actual, maximizing);
 
     } else {
 
@@ -322,50 +459,6 @@ void AIPlayer::thinkMejorOpcion(color &c_piece, int &id_piece, int &dice) const
         thinkFichaMasAdelantada(c_piece, id_piece, dice);
     }
 
-
-}
-
-double AIPlayer::Heuristica(const Parchis &estado, int jugador){
-    int ganador = estado.getWinner();
-    int oponente = (jugador + 1) % 2;
-
-    // Si hay un ganador, devuelvo más/menos infinito, según si he ganado yo o el oponente.
-    if (ganador == jugador)
-    {
-        return gana;
-    }
-    else if (ganador == oponente)
-    {
-        return pierde;
-    } else {
-        // Colores que juega mi jugador y colores del oponente
-        vector<color> my_colors = estado.getPlayerColors(jugador);
-        vector<color> op_colors = estado.getPlayerColors(oponente);
-
-        // Recorro todas las fichas de mi jugador
-        int puntuacion_jugador = 0;
-
-        for (int i = 0; i < my_colors.size(); i++)
-        {
-            color c = my_colors[i];
-            // Recorro las fichas de ese color.
-            for (int j = 0; j < num_pieces; j++)
-            {
-                // Valoro positivamente que la ficha esté en casilla segura o meta.
-                if (estado.isSafePiece(c, j))
-                {
-                    puntuacion_jugador++;
-                }
-                else if (estado.getBoard().getPiece(c, j).type == home)
-                {
-                    puntuacion_jugador += 5;
-                }
-            }
-        }
-
-        return puntuacion_jugador;
-
-    }
 
 }
 

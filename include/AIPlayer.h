@@ -62,7 +62,7 @@ class AIPlayer: public Player{
         void Poda_AlfaBeta(int jugador, color & c_piece,  int & id_piece, int & dice) const ;
         double minimax(Parchis * actual, int jugador, int maximizing, int profundidad, color & c_piece,  int & id_piece, int & dice, double &alpha, double &beta) const ;
 
-        double Heuristica(const Parchis &estado, int jugador);
+        double Heuristica(Parchis &estado, int jugador) const ;
 
 
         /**
