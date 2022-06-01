@@ -498,7 +498,7 @@ double AIPlayer::ValoracionTest(const Parchis &estado, int jugador)
                 {
                     puntuacion_jugador++;
                 }
-                else if (estado.getBoard().getPiece(c, j).type == home)
+                else if (estado.getBoard().getPiece(c, j).type == goal)
                 {
                     puntuacion_jugador += 5;
                 }
@@ -519,7 +519,7 @@ double AIPlayer::ValoracionTest(const Parchis &estado, int jugador)
                     // Valoro negativamente que la ficha esté en casilla segura o meta.
                     puntuacion_oponente++;
                 }
-                else if (estado.getBoard().getPiece(c, j).type == home)
+                else if (estado.getBoard().getPiece(c, j).type == goal)
                 {
                     puntuacion_oponente += 5;
                 }
