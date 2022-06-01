@@ -44,7 +44,10 @@ void AIPlayer::think(color &c_piece, int &id_piece, int &dice) const
         thinkMejorOpcion(c_piece, id_piece, dice);
         break;
     case 4:
-        Poda_AlfaBeta(jugador, c_piece, id_piece, dice);
+        Poda_AlfaBeta(actual, actual->getCurrentPlayerId(), PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, menosinf, masinf);
+        if(id_piece > 4){
+            id_piece = SKIP_TURN;
+        }
         break;
     }
 
@@ -135,10 +138,6 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
 
         vector<int> avaliableDices = estado.getAvailableDices(my_colors[0]);
 
-      
-
-        
-
         // Recorro colores de mi jugador.
         int piezasEnCasa = 0;
         for (int i = 0; i < my_colors.size(); i++)
@@ -208,105 +207,88 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
 
 } 
 
-void AIPlayer::Poda_AlfaBeta(int jugador, color &c_piece, int &id_piece, int &dice) const
+double AIPlayer::Poda_AlfaBeta(Parchis * actual, int jugador, int profundidad, color & c_piece, int & id_piece, int &dice, double  alpha, double  beta) const
 {
-   
-    int last_id_piece = -1;
-    int last_dice = -1;
-    color last_c_piece = none;
 
-    int id_piece_candidate = -1;
-    color c_piece_candidate = none;
-    int dice_candidate = -1;
+    if (profundidad == 0 || actual->gameOver())
+    {
+        return ValoracionTest(*actual, jugador);
 
-    double bestScore = -9999999999.0;
+    }
 
-    double alpha = -9999999999.0;
-    double beta = 9999999999.0;
+    //cout << c_piece << " " << id_piece << " " << dice << " " << profundidad << " " << alpha << " " << beta << endl;
 
-    Parchis siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
-   
-    while(!(siguiente_hijo == (*actual))){
+    if(actual->getCurrentPlayerId() == jugador){
 
-        int score = minimax(&siguiente_hijo, jugador, 1, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta);
-        if(score > bestScore){
-            bestScore = score;
-            c_piece_candidate = last_c_piece;
-            id_piece_candidate = last_id_piece;
-            dice_candidate = last_dice;
+        int last_id_piece = -1;
+        int last_dice = -1;
+        color last_c_piece = none;
+
+        Parchis siguiente_hijo = actual->generateNextMoveDescending(last_c_piece, last_id_piece, last_dice);
+
+        double value = menosinf;
+
+        while(!(siguiente_hijo == *actual)){
+
+            value = max(alpha, Poda_AlfaBeta(&siguiente_hijo, jugador, profundidad - 1, last_c_piece, last_id_piece, last_dice, alpha, beta));
+
+            if(value > alpha){
+                alpha = value;
+
+                if(profundidad == PROFUNDIDAD_ALFABETA){
+                    c_piece = last_c_piece;
+                    id_piece = last_id_piece;
+                    dice = last_dice;
+                }
+                
+            }
+            
+            if (beta <= alpha)
+            {
+                break;
+            }
+
+            siguiente_hijo = actual->generateNextMoveDescending(last_c_piece, last_id_piece, last_dice);
+
         }
 
-        siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
-    }
-
-    cout << "Poda alfabeta " << id_piece_candidate << endl;
-
-    if (id_piece_candidate == -1)
-    {
-        id_piece = SKIP_TURN;
-    }
-    else
-    {
-        id_piece = id_piece_candidate;
-        dice = dice_candidate;
-        c_piece = c_piece_candidate;
-    }
-}
-
-double AIPlayer::minimax(Parchis * actual, int jugador, int maximizing, int profundidad, color &c_piece, int &id_piece, int &dice, double & alpha, double & beta) const
-{
-
-    int last_id_piece = -1;
-    int last_dice = -1;
-    color last_c_piece = none;
-
-    Parchis siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
-    
-    if (profundidad == 0 || actual->getWinner() == jugador)
-    {
-        // Aqui implementaremos la heuristica
-        return Heuristica(*actual, maximizing);
+        return alpha;
 
     } else {
 
-        if(maximizing == 1){
+        int last_id_piece = -1;
+        int last_dice = -1;
+        color last_c_piece = none;
 
-            while(!(siguiente_hijo == *actual)){
-
-                double valor = max(alpha, minimax(&siguiente_hijo, jugador, 0, profundidad - 1, c_piece, id_piece, dice, alpha, beta));
-
-                if (beta <= valor)
-                {
-                    break;
-                }
-
-                alpha = max(alpha, valor);
-                
-                siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
-            }
-
-            return alpha;
-
-        } else {
+        Parchis siguiente_hijo = actual->generateNextMoveDescending(last_c_piece, last_id_piece, last_dice);
             
-            while(!(siguiente_hijo == *actual)){
-                
+        double value = masinf;
 
-                double valor = min(beta, minimax(&siguiente_hijo, jugador, 1, profundidad - 1, c_piece, id_piece, dice, alpha, beta));
+        while(!(siguiente_hijo == *actual)){
+            
+            value = min(beta, Poda_AlfaBeta(&siguiente_hijo, jugador, profundidad - 1, last_c_piece, last_id_piece, last_dice, alpha, beta));
 
-                if (valor <= alpha)
-                {
-                    break;
+            if(value < beta){
+                beta = value;
+
+                if(profundidad == PROFUNDIDAD_ALFABETA){
+                    c_piece = last_c_piece;
+                    id_piece = last_id_piece;
+                    dice = last_dice;
                 }
-
-                beta = min(beta, valor);
-                
-                siguiente_hijo = actual->generateNextMove(last_c_piece, last_id_piece, last_dice);
             }
 
-            return beta;
+            if (beta <= alpha)
+            {
+                break;
+
+            } 
+
+            siguiente_hijo = actual->generateNextMoveDescending(last_c_piece, last_id_piece, last_dice);
+            
         }
 
+        return beta;
     }
 
 }

@@ -59,8 +59,7 @@ class AIPlayer: public Player{
         void thinkFichaMasAdelantada(color & c_piece,  int & id_piece, int & dice) const;
         void thinkMejorOpcion(color & c_piece,  int & id_piece, int & dice) const;
 
-        void Poda_AlfaBeta(int jugador, color & c_piece,  int & id_piece, int & dice) const ;
-        double minimax(Parchis * actual, int jugador, int maximizing, int profundidad, color & c_piece,  int & id_piece, int & dice, double &alpha, double &beta) const ;
+        double Poda_AlfaBeta(Parchis * actual, int jugador, int profundidad, color & c_piece, int & id_piece, int &dice, double  alpha, double  beta) const;
 
         double Heuristica(Parchis &estado, int jugador) const ;
 
