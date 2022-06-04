@@ -111,6 +111,44 @@ bool thereIsOpponentPiece(Parchis estado, int jugador, int casilla){
 
 }
 
+double calcularPuntuacionEstatica(Parchis &estado, vector<color> colores){
+        int puntuacion_jugador = 0;
+        int sum = 0;
+        int num_pieces = 4;
+
+        for (int i = 0; i < colores.size(); i++)
+        {
+            color c = colores[i];
+            vector<int> avaliableDices = estado.getAvailableDices(colores[i]);
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++)
+            {
+                // Valoro positivamente que la ficha esté en casilla segura o meta.
+                if (estado.isSafePiece(c, j))
+                {
+                    puntuacion_jugador+= 5;
+                }
+                else if (estado.getBoard().getPiece(c, j).type == final_queue)
+                {
+                    puntuacion_jugador += 5;
+                }  
+                else if (estado.getBoard().getPiece(c, j).type == home)
+                {
+                    puntuacion_jugador -= 1;
+                } 
+                else if(estado.isWall(estado.getBoard().getPiece(c,j))){
+                    puntuacion_jugador += 3;
+                }
+
+                sum += estado.distanceToGoal(c, j);
+            }
+        }
+
+        puntuacion_jugador -= sum/10;
+
+        return puntuacion_jugador;
+}
+
 double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
     int ganador = estado.getWinner();
     int oponente = (jugador + 1) % 2;
@@ -136,119 +174,47 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
         vector<color> my_colors = estado.getPlayerColors(jugador);
         vector<color> op_colors = estado.getPlayerColors(oponente);
 
-        int sum = 0;
 
+        puntuacion_jugador = calcularPuntuacionEstatica(estado, my_colors);
+        puntuacion_oponente = calcularPuntuacionEstatica(estado, op_colors);
 
-        // Recorro colores de mi jugador.
-        pair<int, int> piezasEnCasa(0, 0);
-        
-        for (int i = 0; i < my_colors.size(); i++)
-        {
-            color c = my_colors[i];
-            vector<int> avaliableDices = estado.getAvailableDices(my_colors[i]);
-            // Recorro las fichas de ese color.
-            for (int j = 0; j < num_pieces; j++)
-            {
-
-                // Valoro positivamente que la ficha esté en casilla segura o meta.
-                if (estado.isSafePiece(c, j))
-                {
-                    puntuacion_jugador++;
-                }
-                else if (estado.getBoard().getPiece(c, j).type == goal)
-                {
-                    if(i == 0)
-                        puntuacion_jugador += 5;
-                    else
-                        puntuacion_jugador += 5;
-                }
-                else if (estado.getBoard().getPiece(c, j).type == final_queue)
-                {
-                    puntuacion_jugador += 5;
-                }  
-                else if (estado.getBoard().getPiece(c, j).type == home)
-                {
-
-                    if(i == 0){
-                        piezasEnCasa.first += 1;
-                    } else {
-                        piezasEnCasa.second += 1;
-                    }
-
-                    puntuacion_jugador -= 1;
-                } 
-                else if(estado.isWall(estado.getBoard().getPiece(c,j))){
-                    puntuacion_jugador += 2;
-                }
-                sum += estado.distanceToGoal(c, j);
-            }
-        }
-
-        puntuacion_jugador -= sum/10;
-
-        vector<tuple <color, int, Box, Box>> aux;
-        /*for(int i = 0; i < aux.size(); i++){
+        vector<tuple <color, int, Box, Box> > aux;
+        for(int i = 0; i < aux.size(); i++){
             if(get<0>(aux[i]) == my_colors[0] || get<0>(aux[i]) == my_colors[1]){
                 puntuacion_jugador += 1;
             } else if(get<0>(aux[i]) == op_colors[0] || get<0>(aux[i]) == op_colors[1]){
                 puntuacion_oponente += 1;
             }
-        }*/
+        }
 
         if(estado.isEatingMove()){
             if(estado.getCurrentPlayerId() == jugador){
-                if(get<0>(estado.getLastAction()) == my_colors[0])
-                    puntuacion_jugador += 5;
+                color c_color = get<0>(estado.getLastAction());
+                int id_piece = get<1>(estado.getLastAction());
+
+                Box aux (estado.getBoard().getPiece(c_color, id_piece));
+                bool hayEnemigo = false;
+
+                for(int i = 1; i < 20; i++){
+                    aux.num -= 1;
+                    for(int x = 0; x < op_colors.size(); x++){
+                        for(int y = 0; y < num_pieces; y++){
+                            if(estado.getBoard().getPiece(op_colors[x], y) == aux){
+                                hayEnemigo = true;
+                            }
+                        }
+                    }
+                } 
+
+                if(!hayEnemigo)
+                    puntuacion_jugador += 20;  
                 else 
-                    puntuacion_jugador += 20;
-                
+                    puntuacion_jugador += 10;
+
             } else  {
                 puntuacion_oponente += 20;
             }
-        }
-        
-        sum = 0;
-        for (int i = 0; i < op_colors.size(); i++)
-        {
-            color c = op_colors[i];
-            // Recorro las fichas de ese color.
-            for (int j = 0; j < num_pieces; j++)
-            {
-
-                // Valoro positivamente que la ficha esté en casilla segura o meta.
-                if (estado.isSafePiece(c, j))
-                {
-                    puntuacion_oponente++;
-                }
-                else if (estado.getBoard().getPiece(c, j).type == goal)
-                {
-                    puntuacion_oponente += 5;
-                }
-                else if (estado.getBoard().getPiece(c, j).type == final_queue)
-                {
-                    puntuacion_oponente += 5;
-                }  
-                else if (estado.getBoard().getPiece(c, j).type == home)
-                {
-                    puntuacion_oponente -= 1;
-                } 
-                else if(estado.isWall(estado.getBoard().getPiece(c,j))){
-                    puntuacion_oponente += 2;
-                }
-
-                sum += estado.distanceToGoal(c, j);
-
-            }
-
-        }
-
-        puntuacion_oponente -= sum/10;
-
-
-        
-
-
-        
+        } 
 
         /* Vamos a ver donde tenemos las casillas y si las tenemos en una safe place vamos a sumarle puntos */
         /* Tambien vamos a ver los dados que nos quedan y si alguno es bueno para llegar a meta sumamos puntos
