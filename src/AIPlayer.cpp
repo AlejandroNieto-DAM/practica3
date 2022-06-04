@@ -158,7 +158,7 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
                 else if (estado.getBoard().getPiece(c, j).type == goal)
                 {
                     if(i == 0)
-                        puntuacion_jugador += 10;
+                        puntuacion_jugador += 5;
                     else
                         puntuacion_jugador += 5;
                 }
@@ -197,14 +197,15 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
 
         if(estado.isEatingMove()){
             if(estado.getCurrentPlayerId() == jugador){
-                puntuacion_jugador += 20;
+                if(get<0>(estado.getLastAction()) == my_colors[0])
+                    puntuacion_jugador += 5;
+                else 
+                    puntuacion_jugador += 20;
                 
             } else  {
                 puntuacion_oponente += 20;
             }
         }
-
-
         
         sum = 0;
         for (int i = 0; i < op_colors.size(); i++)
@@ -221,7 +222,7 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
                 }
                 else if (estado.getBoard().getPiece(c, j).type == goal)
                 {
-                    puntuacion_oponente += 10;
+                    puntuacion_oponente += 5;
                 }
                 else if (estado.getBoard().getPiece(c, j).type == final_queue)
                 {
