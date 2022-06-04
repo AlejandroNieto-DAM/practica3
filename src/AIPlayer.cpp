@@ -81,7 +81,6 @@ void AIPlayer::think(color &c_piece, int &id_piece, int &dice) const
 }
 
 bool thereIsOpponentPiece(Parchis estado, int jugador, int casilla){
-    vector<color> my_colors = estado.getPlayerColors(jugador);
     int oponente = (jugador + 1) % 2;
     vector<color> op_colors = estado.getPlayerColors(oponente);
 
@@ -119,6 +118,7 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
       
     // Recorro todas las fichas de mi jugador
     int puntuacion_jugador = 0;
+    int puntuacion_oponente = 0;
 
     // Si hay un ganador, devuelvo más/menos infinito, según si he ganado yo o el oponente.
     if (ganador == jugador)
@@ -136,13 +136,13 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
         vector<color> my_colors = estado.getPlayerColors(jugador);
         vector<color> op_colors = estado.getPlayerColors(oponente);
 
-        vector<int> avaliableDices = estado.getAvailableDices(my_colors[0]);
 
         // Recorro colores de mi jugador.
         int piezasEnCasa = 0;
         for (int i = 0; i < my_colors.size(); i++)
         {
             color c = my_colors[i];
+            vector<int> avaliableDices = estado.getAvailableDices(my_colors[i]);
             // Recorro las fichas de ese color.
             for (int j = 0; j < num_pieces; j++)
             {
@@ -151,6 +151,10 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
                 {
                     puntuacion_jugador++;
                 }
+                else if (estado.getBoard().getPiece(c, j).type == goal)
+                {
+                    puntuacion_jugador += 5;
+                } 
                 else if (estado.getBoard().getPiece(c, j).type == home)
                 {
                     puntuacion_jugador += 5;
@@ -161,7 +165,11 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
             if(estado.isEatingMove()){
                 puntuacion_jugador += 5;
                 if(piezasEnCasa != 3){
-                    puntuacion_jugador += 15;
+                    if(estado.eatenPiece().first == my_colors[(i + 1) % 2]){
+                        puntuacion_jugador += 10;
+                    } else {
+                        puntuacion_jugador += 15;
+                    }
                 }
             }
 
@@ -172,22 +180,108 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
             {
                 for(int k = 0; k < avaliableDices.size(); k++){
                     if(estado.distanceToGoal(c, j) == avaliableDices[k] and piezasEnCasa != 3){
-                        puntuacion_jugador += 20;
+                        puntuacion_jugador += 10;
                     }
                 }
             }
 
             //Aqui va un else if mirando a ver si sumando el dado a la casilla actual de la pieza puedo llegar a casa o comerme a otra
             //pero no se como hacer eso tengo que obtener el box del tablero y ver si hay alguna pieza ahi
-
             for (int j = 0; j < num_pieces; j++)
             {
                 for(int k = 0; k < avaliableDices.size(); k++){
-                    if(thereIsOpponentPiece(estado, jugador, (estado.getBoard().getPiece(c, j).num + k)) and piezasEnCasa != 3){
+                    if(thereIsOpponentPiece(estado, jugador, (estado.getBoard().getPiece(c, j).num + avaliableDices[k])) and piezasEnCasa != 3){
                         puntuacion_jugador += 10;
                     }
                 }
             }
+
+            //Miro si alguna de las fichas del oponente esta cerca de mi con sus dados
+            for (int j = 0; j < num_pieces; j++)
+            {
+                for(int x = 0; x < op_colors.size(); x++){
+                    color aux = op_colors[x];
+                    for(int y = 0; y < num_pieces; y++){
+                        if(estado.getBoard().getPiece(c, j).num < estado.getBoard().getPiece(aux, y).num + 11){
+                            puntuacion_jugador -= 20;
+                        }            
+                    }
+                }
+            }
+
+        }
+
+        piezasEnCasa = 0;
+        for (int i = 0; i < op_colors.size(); i++)
+        {
+            color c = op_colors[i];
+            vector<int> avaliableDices = estado.getAvailableDices(op_colors[i]);
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++)
+            {
+                // Valoro positivamente que la ficha esté en casilla segura o meta.
+                if (estado.isSafePiece(c, j))
+                {
+                    puntuacion_oponente++;
+                }
+                else if (estado.getBoard().getPiece(c, j).type == goal)
+                {
+                    puntuacion_oponente += 5;
+                } 
+                else if (estado.getBoard().getPiece(c, j).type == home)
+                {
+                    puntuacion_oponente += 5;
+                    piezasEnCasa += 1;
+                } 
+            }
+
+            if(estado.isEatingMove()){
+                puntuacion_oponente += 5;
+                if(piezasEnCasa != 3){
+                    if(estado.eatenPiece().first == op_colors[(i + 1) % 2]){
+                        puntuacion_oponente += 10;
+                    } else {
+                        puntuacion_oponente += 15;
+                    }
+                }
+            }
+
+            //Estamos premiando que vayamos a llegar a la meta y como nos da 20 posiciones mas
+            //debemos tener en cuenta que tengamos otra ficha del mismo color al menos fuera
+            //por eso !=3 ya que si una va a llegar la meta solo puede haber como mucho 3 en casa
+            for (int j = 0; j < num_pieces; j++)
+            {
+                for(int k = 0; k < avaliableDices.size(); k++){
+                    if(estado.distanceToGoal(c, j) == avaliableDices[k] and piezasEnCasa != 3){
+                        puntuacion_oponente += 10;
+                    }
+                }
+            }
+
+            //Aqui va un else if mirando a ver si sumando el dado a la casilla actual de la pieza puedo llegar a casa o comerme a otra
+            //pero no se como hacer eso tengo que obtener el box del tablero y ver si hay alguna pieza ahi
+            for (int j = 0; j < num_pieces; j++)
+            {
+                for(int k = 0; k < avaliableDices.size(); k++){
+                    if(thereIsOpponentPiece(estado, jugador, (estado.getBoard().getPiece(c, j).num + avaliableDices[k])) and piezasEnCasa != 3){
+                        puntuacion_oponente += 10;
+                    }
+                }
+            }
+
+            //Miro si alguna de las fichas del oponente esta cerca de mi con sus dados
+            for (int j = 0; j < num_pieces; j++)
+            {
+                for(int x = 0; x < op_colors.size(); x++){
+                    color aux = op_colors[x];
+                    for(int y = 0; y < num_pieces; y++){
+                        if(estado.getBoard().getPiece(c, j).num < estado.getBoard().getPiece(aux, y).num + 11){
+                            puntuacion_oponente -= 20;
+                        }            
+                    }
+                }
+            }
+
         }
 
         /* Vamos a ver donde tenemos las casillas y si las tenemos en una safe place vamos a sumarle puntos */
@@ -203,7 +297,7 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
 
     }
 
-    return puntuacion_jugador;
+    return puntuacion_jugador - puntuacion_oponente;
 
 } 
 
@@ -212,7 +306,7 @@ double AIPlayer::Poda_AlfaBeta(Parchis * actual, int jugador, int profundidad, c
 
     if (profundidad == 0 || actual->gameOver())
     {
-        return ValoracionTest(*actual, jugador);
+        return Heuristica(*actual, jugador);
 
     }
 
