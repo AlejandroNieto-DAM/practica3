@@ -136,9 +136,12 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
         vector<color> my_colors = estado.getPlayerColors(jugador);
         vector<color> op_colors = estado.getPlayerColors(oponente);
 
+        int sum = 0;
+
 
         // Recorro colores de mi jugador.
-        int piezasEnCasa = 0;
+        pair<int, int> piezasEnCasa(0, 0);
+        
         for (int i = 0; i < my_colors.size(); i++)
         {
             color c = my_colors[i];
@@ -154,48 +157,63 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
                 }
                 else if (estado.getBoard().getPiece(c, j).type == goal)
                 {
+                    if(i == 0)
+                        puntuacion_jugador += 10;
+                    else
+                        puntuacion_jugador += 5;
+                }
+                else if (estado.getBoard().getPiece(c, j).type == final_queue)
+                {
                     puntuacion_jugador += 5;
-                } 
+                }  
                 else if (estado.getBoard().getPiece(c, j).type == home)
                 {
-                    piezasEnCasa += 1;
-                } 
-            }
 
-            if(estado.isEatingMove()){
-                puntuacion_jugador += 5;
-                if(piezasEnCasa != 3){
-                    if(estado.eatenPiece().first == op_colors[0] || estado.eatenPiece().first == op_colors[1] || (i == 0 and estado.eatenPiece().first == my_colors[1])){
-                        puntuacion_jugador += 15;
-                    }                   
-                }
-
-
-            }
-
-        
-            //Estamos premiando que vayamos a llegar a la meta y como nos da 20 posiciones mas
-            //debemos tener en cuenta que tengamos otra ficha del mismo color al menos fuera
-            //por eso !=3 ya que si una va a llegar la meta solo puede haber como mucho 3 en casa
-            for (int j = 0; j < num_pieces; j++)
-            {
-                for(int k = 0; k < avaliableDices.size(); k++){
-                    if(estado.distanceToGoal(c, j) < (avaliableDices[k] + 10) and piezasEnCasa != 3){
-                        puntuacion_jugador += avaliableDices[k];
+                    if(i == 0){
+                        piezasEnCasa.first += 1;
+                    } else {
+                        piezasEnCasa.second += 1;
                     }
-                }
-            }
 
+                    puntuacion_jugador -= 1;
+                } 
+                else if(estado.isWall(estado.getBoard().getPiece(c,j))){
+                    puntuacion_jugador += 2;
+                }
+                sum += estado.distanceToGoal(c, j);
+            }
         }
 
-        piezasEnCasa = 0;
+        puntuacion_jugador -= sum/10;
+
+        vector<tuple <color, int, Box, Box>> aux;
+        /*for(int i = 0; i < aux.size(); i++){
+            if(get<0>(aux[i]) == my_colors[0] || get<0>(aux[i]) == my_colors[1]){
+                puntuacion_jugador += 1;
+            } else if(get<0>(aux[i]) == op_colors[0] || get<0>(aux[i]) == op_colors[1]){
+                puntuacion_oponente += 1;
+            }
+        }*/
+
+        if(estado.isEatingMove()){
+            if(estado.getCurrentPlayerId() == jugador){
+                puntuacion_jugador += 20;
+                
+            } else  {
+                puntuacion_oponente += 20;
+            }
+        }
+
+
+        
+        sum = 0;
         for (int i = 0; i < op_colors.size(); i++)
         {
             color c = op_colors[i];
-            vector<int> avaliableDicesOp = estado.getAvailableDices(op_colors[i]);
             // Recorro las fichas de ese color.
             for (int j = 0; j < num_pieces; j++)
             {
+
                 // Valoro positivamente que la ficha esté en casilla segura o meta.
                 if (estado.isSafePiece(c, j))
                 {
@@ -203,31 +221,33 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
                 }
                 else if (estado.getBoard().getPiece(c, j).type == goal)
                 {
+                    puntuacion_oponente += 10;
+                }
+                else if (estado.getBoard().getPiece(c, j).type == final_queue)
+                {
                     puntuacion_oponente += 5;
-                } 
+                }  
                 else if (estado.getBoard().getPiece(c, j).type == home)
                 {
-                    puntuacion_jugador += 5;
-                    piezasEnCasa += 1;
+                    puntuacion_oponente -= 1;
                 } 
-            }
-
-            if(estado.isEatingMove()){           
-                puntuacion_oponente += 20;                
-            }
-
-            //Estamos premiando que vayamos a llegar a la meta y como nos da 20 posiciones mas
-            //debemos tener en cuenta que tengamos otra ficha del mismo color al menos fuera
-            //por eso !=3 ya que si una va a llegar la meta solo puede haber como mucho 3 en casa
-            for (int j = 0; j < num_pieces; j++)
-            {
-                for(int k = 0; k < avaliableDicesOp.size(); k++){
-                    if(estado.distanceToGoal(c, j) < (avaliableDicesOp[k] + 10) and piezasEnCasa != 3){
-                        puntuacion_oponente += avaliableDicesOp[k];
-                    }
+                else if(estado.isWall(estado.getBoard().getPiece(c,j))){
+                    puntuacion_oponente += 2;
                 }
+
+                sum += estado.distanceToGoal(c, j);
+
             }
+
         }
+
+        puntuacion_oponente -= sum/10;
+
+
+        
+
+
+        
 
         /* Vamos a ver donde tenemos las casillas y si las tenemos en una safe place vamos a sumarle puntos */
         /* Tambien vamos a ver los dados que nos quedan y si alguno es bueno para llegar a meta sumamos puntos
