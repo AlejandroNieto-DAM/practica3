@@ -111,7 +111,7 @@ bool thereIsOpponentPiece(Parchis estado, int jugador, int casilla){
 
 }
 
-double calcularPuntuacionEstatica(Parchis &estado, vector<color> colores){
+double calcularPuntuacionEstatica(Parchis &estado, vector<color> colores, vector<color> op_colors){
         int puntuacion_jugador = 0;
         int sum = 0;
         int num_pieces = 4;
@@ -138,6 +138,28 @@ double calcularPuntuacionEstatica(Parchis &estado, vector<color> colores){
                 } 
                 else if(estado.isWall(estado.getBoard().getPiece(c,j))){
                     puntuacion_jugador += 3;
+
+                    Box aux (estado.getBoard().getPiece(c,j));
+
+                    for(int x = 1; x < 3; x++){
+                        aux.num -= 1;
+                        for(int y = 0; y < op_colors.size(); y++){
+                            for(int z = 0; z < num_pieces; z++){
+                                if(estado.getBoard().getPiece(op_colors[y], z) == aux){
+                                    puntuacion_jugador ++;
+                                }
+                            }
+                        }
+
+                        for(int y = 0; y < colores.size(); y++){
+                            for(int z = 0; z < num_pieces; z++){
+                                if(estado.getBoard().getPiece(colores[y], z) == aux){
+                                    puntuacion_jugador -= 1;
+                                }
+                            }
+                        }
+                    }
+
                 }
 
                 sum += estado.distanceToGoal(c, j);
@@ -175,17 +197,9 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
         vector<color> op_colors = estado.getPlayerColors(oponente);
 
 
-        puntuacion_jugador = calcularPuntuacionEstatica(estado, my_colors);
-        puntuacion_oponente = calcularPuntuacionEstatica(estado, op_colors);
+        puntuacion_jugador = calcularPuntuacionEstatica(estado, my_colors, op_colors);
+        puntuacion_oponente = calcularPuntuacionEstatica(estado, op_colors, my_colors);
 
-        vector<tuple <color, int, Box, Box> > aux;
-        for(int i = 0; i < aux.size(); i++){
-            if(get<0>(aux[i]) == my_colors[0] || get<0>(aux[i]) == my_colors[1]){
-                puntuacion_jugador += 1;
-            } else if(get<0>(aux[i]) == op_colors[0] || get<0>(aux[i]) == op_colors[1]){
-                puntuacion_oponente += 1;
-            }
-        }
 
         if(estado.isEatingMove()){
             if(estado.getCurrentPlayerId() == jugador){
@@ -215,6 +229,9 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
                 puntuacion_oponente += 20;
             }
         } 
+        
+        
+        
 
         /* Vamos a ver donde tenemos las casillas y si las tenemos en una safe place vamos a sumarle puntos */
         /* Tambien vamos a ver los dados que nos quedan y si alguno es bueno para llegar a meta sumamos puntos
