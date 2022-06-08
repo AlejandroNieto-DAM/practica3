@@ -229,21 +229,6 @@ double AIPlayer::Heuristica(Parchis &estado, int jugador) const {
                 puntuacion_oponente += 20;
             }
         } 
-        
-        
-        
-
-        /* Vamos a ver donde tenemos las casillas y si las tenemos en una safe place vamos a sumarle puntos */
-        /* Tambien vamos a ver los dados que nos quedan y si alguno es bueno para llegar a meta sumamos puntos
-        aun asi debemos tener en cuenta que si estamos en casa y no tenemos mas piezas sacadas seria tonteria */
-        /* Tenemos que ver si nos quedan dados con los que podamos comernos a una ficha y antes de hacerlo tener una ficha 
-        sacada */
-        /* Hacer que el amarillo se coma al rojo (Un mismo equipo que use su otro color para boostear) */
-        /* Mirar las fichas enemigas que esten a menos de 7 */
-        /* Mirar las fichas enemigas que esten detras mia a menos de 7*/
-        /* Mirar si a menos de 7 hacia delante hay una barrera*/
-        /* Si la ficha esta a 13 de la meta o 9 esta muy bien pero a 9  mejor (ya esta 100% asegurada) */
-
     }
 
     return puntuacion_jugador - puntuacion_oponente;
@@ -259,7 +244,6 @@ double AIPlayer::Poda_AlfaBeta(Parchis * actual, int jugador, int profundidad, c
 
     }
 
-    //cout << c_piece << " " << id_piece << " " << dice << " " << profundidad << " " << alpha << " " << beta << endl;
 
     if(actual->getCurrentPlayerId() == jugador){
 
