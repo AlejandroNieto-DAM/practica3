@@ -29,86 +29,31 @@ bool AIPlayer::move()
 void AIPlayer::think(color &c_piece, int &id_piece, int &dice) const
 {
 
-    switch (id)
-    {
-    case 0:
-        thinkAleatorio(c_piece, id_piece, dice);
-        break;
-    case 1:
-        thinkAleatorioMasInteligente(c_piece, id_piece, dice);
-        break;
-    case 2:
-        thinkFichaMasAdelantada(c_piece, id_piece, dice);
-        break;
-    case 3:
-        thinkMejorOpcion(c_piece, id_piece, dice);
-        break;
-    case 4:
+    if(id == 0){
+        
         Poda_AlfaBeta(actual, actual->getCurrentPlayerId(), PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, menosinf, masinf);
         if(id_piece > 4){
             id_piece = SKIP_TURN;
         }
-        break;
-    }
-
-
-    /*
-    // El siguiente código se proporciona como sugerencia para iniciar la implementación del agente.
-
-    double valor; // Almacena el valor con el que se etiqueta el estado tras el proceso de busqueda.
-    double alpha = menosinf, beta = masinf; // Cotas iniciales de la poda AlfaBeta
-    // Llamada a la función para la poda (los parámetros son solo una sugerencia, se pueden modificar).
-    valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
-    cout << "Valor MiniMax: " << valor << "  Accion: " << str(c_piece) << " " << id_piece << " " << dice << endl;
-
-    // ----------------------------------------------------------------- //
-
-    // Si quiero poder manejar varias heurísticas, puedo usar la variable id del agente para usar una u otra.
-    switch(id){
-        case 0:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
-            break;
+        
+    } else {
+        switch (id)
+        {
         case 1:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, MiValoracion1);
+            thinkAleatorio(c_piece, id_piece, dice);
             break;
         case 2:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, MiValoracion2);
+            thinkAleatorioMasInteligente(c_piece, id_piece, dice);
             break;
-    }
-    cout << "Valor MiniMax: " << valor << "  Accion: " << str(c_piece) << " " << id_piece << " " << dice << endl;
-
-    */
-}
-
-bool thereIsOpponentPiece(Parchis estado, int jugador, int casilla){
-    int oponente = (jugador + 1) % 2;
-    vector<color> op_colors = estado.getPlayerColors(oponente);
-
-    int i = 0;
-    bool exist = false;
-
-    for (int i = 0; i < op_colors.size() and exist == false; i++)
-    {
-        color c = op_colors[i];
-        // Recorro las fichas de ese color.
-        for (int j = 0; j < num_pieces; j++)
-        {
-            // Valoro positivamente que la ficha esté en casilla segura o meta.
-            if (estado.getBoard().getPiece(c, j).num == casilla)
-            {
-                i += 1;
-            }
-
+        case 3:
+            thinkFichaMasAdelantada(c_piece, id_piece, dice);
+            break;
+        case 4:
+            thinkMejorOpcion(c_piece, id_piece, dice);
+            break;
+        
         }
-
-        if(i != 2){
-            exist = true;
-        }
-
-    }
-
-    return exist;
-
+    }  
 }
 
 double calcularPuntuacionEstatica(Parchis &estado, vector<color> colores, vector<color> op_colors){
